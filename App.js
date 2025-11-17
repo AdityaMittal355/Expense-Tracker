@@ -6,7 +6,9 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import RecentExpenses from './screens/RecentExpenses';
 import AllExpenses from './screens/AllExpenses';
+import ManageExpenses from './screens/ManageExpenses';
 import { Ionicons } from '@expo/vector-icons';
+import NewExpense from './components/NewExpense';
 
 const Stack = createNativeStackNavigator();
 const BottomTab = createBottomTabNavigator();
@@ -35,7 +37,7 @@ function ExpensesOverview() {
           title: 'Recent Expenses',
           headerRight: ({ tintColor }) => (
             <Pressable
-              onPress={() => {}}
+              onPress={() => navigation.navigate('CreateExpense')}
               style={({ pressed }) => ({ marginRight: 16, opacity: pressed ? 0.7 : 1 })}
             >
               <Ionicons name="add" size={24} color={tintColor || '#000'} />
@@ -50,7 +52,7 @@ function ExpensesOverview() {
           title: 'All Expenses',
           headerRight: ({ tintColor }) => (
             <Pressable
-              onPress={() => {}}
+              onPress={() => navigation.navigate('CreateExpense')}
               style={({ pressed }) => ({ marginRight: 16, opacity: pressed ? 0.7 : 1 })}
             >
               <Ionicons name="add" size={24} color={tintColor || '#000'} />
@@ -71,7 +73,8 @@ export default function App() {
           component={ExpensesOverview}
           options={{ headerShown: false }}
         />
-        <Stack.Screen name="CreateExpense" component={() => {}} />
+        <Stack.Screen name="ManageExpense" component={ManageExpenses} />
+        <Stack.Screen name="CreateExpense" component={NewExpense} />
       </Stack.Navigator>
     </NavigationContainer>
   );

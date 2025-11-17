@@ -1,15 +1,22 @@
+// ...existing code...
+import { useNavigation } from '@react-navigation/native';
 import React from 'react';
 import { Text, View, FlatList, StyleSheet, Platform, Pressable } from "react-native";
+import { DummyExpenses } from '../constants/Dummy_Expenses';
 
-const DummyExpenses = [
-    { id: 'e1', description: 'Shoes', amount: 59.99, date: new Date('2022-12-19') },
-    { id: 'e2', description: 'Groceries', amount: 16.78, date: new Date('2022-12-20') },
-    { id: 'e3', description: 'Book', amount: 12.99, date: new Date('2022-12-21') },
-];
+function ExpenseItem({ item }) {
+    const navigation = useNavigation();
 
-function renderExpenseItem({ item }) {
+    function expenseHandler() {
+        navigation.navigate('ManageExpense');
+    }
+
     return (
-        <Pressable>
+        <Pressable
+            android_ripple={{ color: '#e6e9ee' }}
+            style={({ pressed }) => [styles.pressable, pressed && styles.pressed]}
+            onPress={expenseHandler}
+        >
             <View style={styles.card}>
                 <View style={styles.itemLeft}>
                     <Text style={styles.description}>{item.description}</Text>
@@ -23,11 +30,15 @@ function renderExpenseItem({ item }) {
     );
 }
 
+// ...existing code...
 
 function ExpensesOutput({ expenses, period}) {
 
     const items = expenses ?? DummyExpenses;
-    const expensesSum = items.reduce((acc, expense) => acc + expense.amount, 0);
+    const sortedItems = items.slice().sort(
+      (a, b) => new Date(b.date) - new Date(a.date)
+    );
+    const expensesSum = sortedItems.reduce((acc, expense) => acc + expense.amount, 0);
 
     return (
         <View style={styles.container}>
@@ -37,14 +48,15 @@ function ExpensesOutput({ expenses, period}) {
             </View>
 
             <FlatList
-                data={items}
-                renderItem={renderExpenseItem}
+                data={sortedItems}
+                renderItem={({ item }) => <ExpenseItem item={item} />}
                 keyExtractor={(item) => item.id}
                 contentContainerStyle={styles.list}
             />
         </View>
     )
 }
+
 
 export default ExpensesOutput;
 // ...existing code...
@@ -75,13 +87,24 @@ const styles = StyleSheet.create({
     list: {
         paddingBottom: 24,
     },
+    // Pressable wrapper gets the vertical spacing and rounded overflow for ripple
+    pressable: {
+        borderRadius: 10,
+        overflow: 'hidden',
+        marginVertical: 6,
+    },
+    // subtle pressed feedback for iOS (and general visual feedback)
+    pressed: {
+        opacity: 0.85,
+        transform: [{ scale: 0.997 }],
+    },
     card: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
         backgroundColor: '#fff',
         padding: 12,
-        marginVertical: 6,
+        // marginVertical removed — handled by pressable wrapper
         borderRadius: 10,
         // shadows
         ...Platform.select({
@@ -117,6 +140,6 @@ const styles = StyleSheet.create({
     amountText: {
         fontSize: 16,
         fontWeight: '700',
-        color: '#16a34a', // green for positive/expense amount
+        color: '#16a34a',
     },
 });
