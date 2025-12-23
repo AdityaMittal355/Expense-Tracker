@@ -1,14 +1,19 @@
 // ...existing code...
 import { useNavigation } from '@react-navigation/native';
-import React from 'react';
-import { Text, View, FlatList, StyleSheet, Platform, Pressable } from "react-native";
-import { DummyExpenses } from '../constants/Dummy_Expenses';
+import React, { useEffect, useRef } from 'react';
+import { Text, View, FlatList, StyleSheet, Platform, Pressable, Animated } from "react-native";
+import { useFocusEffect } from '@react-navigation/native';
+import { Ionicons } from '@expo/vector-icons';
 
-function ExpenseItem({ item }) {
+function ExpenseItem({ item, onDeleteExpense }) {
     const navigation = useNavigation();
 
     function expenseHandler() {
-        navigation.navigate('ManageExpense');
+        navigation.navigate('ManageExpense', { expense: item });
+    }
+
+    function deleteHandler() {
+        onDeleteExpense(item.id);
     }
 
     return (
@@ -20,11 +25,18 @@ function ExpenseItem({ item }) {
             <View style={styles.card}>
                 <View style={styles.itemLeft}>
                     <Text style={styles.description}>{item.description}</Text>
-                    <Text style={styles.date}>{item.date.toLocaleDateString()}</Text>
+                    <Text style={styles.date}>{item.date.toLocaleDateString('en-IN')}</Text>
                 </View>
                 <View style={styles.amountContainer}>
                     <Text style={styles.amountText}>${item.amount.toFixed(2)}</Text>
                 </View>
+                <Pressable
+                    style={styles.deleteBtn}
+                    onPress={deleteHandler}
+                    android_ripple={{ color: '#ffcccc' }}
+                >
+                    <Ionicons name="trash" size={20} color="#e74c3c" />
+                </Pressable>
             </View>
         </Pressable>
     );
@@ -32,34 +44,57 @@ function ExpenseItem({ item }) {
 
 // ...existing code...
 
-function ExpensesOutput({ expenses, period}) {
+function ExpensesOutput({ expenses, period, onDeleteExpense }) {
 
-    const items = expenses ?? DummyExpenses;
+    const fadeAnim = useRef(new Animated.Value(0)).current;
+
+    useFocusEffect(
+        React.useCallback(() => {
+            fadeAnim.setValue(-20);
+            Animated.timing(fadeAnim, {
+                toValue: 0,
+                duration: 500,
+                useNativeDriver: true,
+            }).start();
+        }, [fadeAnim])
+    );
+
+    const items = expenses;
     const sortedItems = items.slice().sort(
       (a, b) => new Date(b.date) - new Date(a.date)
     );
     const expensesSum = sortedItems.reduce((acc, expense) => acc + expense.amount, 0);
 
+    const currentDate = new Date().toLocaleDateString('en-IN');
+    const displayPeriod = period === 'Total' ? `Total` : `Last 7 Days`;
+
     return (
         <View style={styles.container}>
             <View style={styles.header}>
-                <Text style={styles.period}>{period}</Text>
+                <Text style={styles.period}>{displayPeriod}</Text>
                 <Text style={styles.total}>${expensesSum.toFixed(2)}</Text>
             </View>
 
-            <FlatList
-                data={sortedItems}
-                renderItem={({ item }) => <ExpenseItem item={item} />}
-                keyExtractor={(item) => item.id}
-                contentContainerStyle={styles.list}
-            />
+            {sortedItems.length === 0 ? (
+                <Animated.View style={[styles.emptyContainer, { transform: [{ translateY: fadeAnim }] }]}>
+                    <Text style={styles.emptyText}>No expenses to track</Text>
+                </Animated.View>
+            ) : (
+                <Animated.View style={{ transform: [{ translateY: fadeAnim }] }}>
+                    <FlatList
+                        data={sortedItems}
+                        renderItem={({ item }) => <ExpenseItem item={item} onDeleteExpense={onDeleteExpense} />}
+                        keyExtractor={(item) => item.id}
+                        contentContainerStyle={styles.list}
+                    />
+                </Animated.View>
+            )}
         </View>
     )
 }
 
 
 export default ExpensesOutput;
-// ...existing code...
 
 const styles = StyleSheet.create({
     container: {
@@ -141,5 +176,20 @@ const styles = StyleSheet.create({
         fontSize: 16,
         fontWeight: '700',
         color: '#16a34a',
+    },
+    deleteBtn: {
+        padding: 8,
+        marginLeft: 8,
+    },
+    emptyContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        paddingVertical: 50,
+    },
+    emptyText: {
+        fontSize: 18,
+        color: '#6b7280',
+        textAlign: 'center',
     },
 });

@@ -1,4 +1,3 @@
-// ...existing code...
 import * as React from 'react';
 import { Pressable } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
@@ -9,6 +8,7 @@ import AllExpenses from './screens/AllExpenses';
 import ManageExpenses from './screens/ManageExpenses';
 import { Ionicons } from '@expo/vector-icons';
 import NewExpense from './components/NewExpense';
+import ExpensesContextProvider from './contexts/ExpensesContext';
 
 const Stack = createNativeStackNavigator();
 const BottomTab = createBottomTabNavigator();
@@ -33,32 +33,16 @@ function ExpensesOverview() {
       <BottomTab.Screen
         name="RecentExpenses"
         component={RecentExpenses}
-        options={({ navigation }) => ({
+        options={{
           title: 'Recent Expenses',
-          headerRight: ({ tintColor }) => (
-            <Pressable
-              onPress={() => navigation.navigate('CreateExpense')}
-              style={({ pressed }) => ({ marginRight: 16, opacity: pressed ? 0.7 : 1 })}
-            >
-              <Ionicons name="add" size={24} color={tintColor || '#000'} />
-            </Pressable>
-          ),
-        })}
+        }}
       />
       <BottomTab.Screen
         name="AllExpenses"
         component={AllExpenses}
-        options={({ navigation }) => ({
+        options={{
           title: 'All Expenses',
-          headerRight: ({ tintColor }) => (
-            <Pressable
-              onPress={() => navigation.navigate('CreateExpense')}
-              style={({ pressed }) => ({ marginRight: 16, opacity: pressed ? 0.7 : 1 })}
-            >
-              <Ionicons name="add" size={24} color={tintColor || '#000'} />
-            </Pressable>
-          ),
-        })}
+        }}
       />
     </BottomTab.Navigator>
   );
@@ -66,16 +50,18 @@ function ExpensesOverview() {
 
 export default function App() {
   return (
-    <NavigationContainer>
-      <Stack.Navigator>
-        <Stack.Screen
-          name="ExpensesOverview"
-          component={ExpensesOverview}
-          options={{ headerShown: false }}
-        />
-        <Stack.Screen name="ManageExpense" component={ManageExpenses} />
-        <Stack.Screen name="CreateExpense" component={NewExpense} />
-      </Stack.Navigator>
-    </NavigationContainer>
+    <ExpensesContextProvider>
+      <NavigationContainer>
+        <Stack.Navigator>
+          <Stack.Screen
+            name="ExpensesOverview"
+            component={ExpensesOverview}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen name="ManageExpense" component={ManageExpenses} />
+          <Stack.Screen name="CreateExpense" component={NewExpense} />
+        </Stack.Navigator>
+      </NavigationContainer>
+    </ExpensesContextProvider>
   );
 }
