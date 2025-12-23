@@ -9,15 +9,17 @@ import {
   Pressable,
   Alert,
 } from 'react-native';
+import { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 
 export default function NewExpense({ navigation, route }) {
   const [description, setDescription] = useState('');
   const [amount, setAmount] = useState('');
-  const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
+  const [date, setDate] = useState(new Date());
   const [touched, setTouched] = useState({ desc: false, amount: false, date: false });
+  const [showPicker, setShowPicker] = useState(false);
 
   const amountNum = parseFloat(amount);
-  const parsedDate = new Date(date);
+  const parsedDate = date;
   const validDescription = description.trim().length > 0;
   const validAmount = !Number.isNaN(amountNum) && amountNum > 0;
   const validDate = !Number.isNaN(parsedDate.getTime());
@@ -51,9 +53,23 @@ export default function NewExpense({ navigation, route }) {
     navigation.goBack();
   }
 
+  function showDatePicker() {
+    DateTimePickerAndroid.open({
+      value: date,
+      onChange: (event, selectedDate) => {
+        if (selectedDate) {
+          setDate(selectedDate);
+        }
+      },
+      mode: 'date',
+      is24Hour: true,
+      maximumDate: new Date(),
+    });
+  }
+
   const descError = !validDescription && touched.desc ? 'Enter a description' : '';
   const amountError = !validAmount && touched.amount ? 'Enter a valid amount > 0' : '';
-  const dateError = !validDate && touched.date ? 'Enter date as YYYY-MM-DD' : '';
+  const dateError = !validDate && touched.date ? 'Select a valid date' : '';
 
   return (
     <KeyboardAvoidingView
@@ -84,15 +100,13 @@ export default function NewExpense({ navigation, route }) {
         />
         {amountError ? <Text style={styles.errorText}>{amountError}</Text> : null}
 
-        <Text style={styles.label}>Date (YYYY-MM-DD)</Text>
-        <TextInput
+        <Text style={styles.label}>Date</Text>
+        <Pressable
           style={[styles.input, dateError ? styles.inputError : null]}
-          placeholder={new Date().toISOString().slice(0, 10)}
-          value={date}
-          onChangeText={(t) => setDate(t)}
-          onBlur={() => setTouched((s) => ({ ...s, date: true }))}
-          returnKeyType="done"
-        />
+          onPress={showDatePicker}
+        >
+          <Text style={styles.dateText}>{date.toLocaleDateString('en-IN')}</Text>
+        </Pressable>
         {dateError ? <Text style={styles.errorText}>{dateError}</Text> : null}
 
         <View style={styles.actions}>
@@ -137,6 +151,7 @@ const styles = StyleSheet.create({
   },
   inputError: { borderColor: '#e74c3c' },
   errorText: { color: '#e74c3c', marginTop: 6, fontSize: 12 },
+  dateText: { fontSize: 16, color: '#333' },
   actions: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 24 },
   btn: {
     flex: 1,
