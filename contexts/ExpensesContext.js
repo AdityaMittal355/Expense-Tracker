@@ -1,5 +1,7 @@
 import { createContext, useReducer, useEffect } from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { ref, onValue, push, update, remove } from 'firebase/database';
+import { database } from '../firebase';
+import { useAuth } from './AuthContext';
 
 export const ExpensesContext = createContext({
   expenses: [],
@@ -33,57 +35,44 @@ function expensesReducer(state, action) {
 
 function ExpensesContextProvider({ children }) {
   const [expensesState, dispatch] = useReducer(expensesReducer, []);
+  const { currentUser } = useAuth();
 
   useEffect(() => {
-    async function loadExpenses() {
-      try {
-        const storedExpenses = await AsyncStorage.getItem('expenses');
-        if (storedExpenses) {
-          const parsedExpenses = JSON.parse(storedExpenses);
-          // Convert date strings back to Date objects
-          const expensesWithDates = parsedExpenses.map(exp => ({
-            ...exp,
-            date: new Date(exp.date),
-          }));
-          dispatch({ type: 'SET', payload: expensesWithDates });
-        } else {
-          // No stored expenses, start with empty
-          dispatch({ type: 'SET', payload: [] });
-        }
-      } catch (error) {
-        console.error('Failed to load expenses:', error);
+    if (!currentUser) {
+      dispatch({ type: 'SET', payload: [] });
+      return;
+    }
+    const expensesRef = ref(database, `expenses/${currentUser.uid}`);
+    const unsubscribe = onValue(expensesRef, (snapshot) => {
+      const data = snapshot.val();
+      if (data) {
+        const expenses = Object.keys(data).map(key => ({
+          id: key,
+          ...data[key],
+          date: new Date(data[key].date),
+        }));
+        dispatch({ type: 'SET', payload: expenses });
+      } else {
         dispatch({ type: 'SET', payload: [] });
       }
-    }
-    loadExpenses();
-  }, []);
-
-  useEffect(() => {
-    async function saveExpenses() {
-      try {
-        // Convert Date objects to strings for JSON
-        const expensesToSave = expensesState.map(exp => ({
-          ...exp,
-          date: exp.date.toISOString(),
-        }));
-        await AsyncStorage.setItem('expenses', JSON.stringify(expensesToSave));
-      } catch (error) {
-        console.error('Failed to save expenses:', error);
-      }
-    }
-    saveExpenses();
-  }, [expensesState]);
+    });
+    return () => unsubscribe();
+  }, [currentUser]);
 
   function addExpense(expenseData) {
-    dispatch({ type: 'ADD', payload: expenseData });
+    if (!currentUser) return;
+    const expensesRef = ref(database, `expenses/${currentUser.uid}`);
+    push(expensesRef, { ...expenseData, date: expenseData.date.toISOString() });
   }
 
   function deleteExpense(id) {
-    dispatch({ type: 'DELETE', payload: id });
+    if (!currentUser) return;
+    remove(ref(database, `expenses/${currentUser.uid}/${id}`));
   }
 
   function updateExpense(id, expenseData) {
-    dispatch({ type: 'UPDATE', payload: { id: id, data: expenseData } });
+    if (!currentUser) return;
+    update(ref(database, `expenses/${currentUser.uid}/${id}`), { ...expenseData, date: expenseData.date.toISOString() });
   }
 
   const value = {
